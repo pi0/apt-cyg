@@ -1,60 +1,34 @@
-cyg
-=======
+# cyg: Cygwin Package Manager
 
 cyg is a command-line installer for [Cygwin](http://cygwin.com/) which cooperates with Cygwin Setup and uses the same repository. 
 This project is based on *kou1okada/apt-cyg*  
 
-The syntax is similar to apt-get. Usage examples:
-
-* "cyg install &lt;package names&gt;" to install packages
-* "cyg remove &lt;package names&gt;" to remove packages
-* "cyg update" to update setup.ini
-* "cyg show" to show installed packages
-* "cyg find &lt;pattern(s)&gt;" to find packages matching patterns
-* "cyg describe &lt;pattern(s)&gt;" to describe packages matching patterns
-* "cyg packageof &lt;commands or files&gt;" to locate parent packages
-* "cyg pathof &lt;cache|mirror|mirrordir|cache/mirrordir|setup.ini&gt;" to show path
-* "cyg key-add &lt;files&gt; ..." to add keys contained in &lt;files&gt;
-* "cyg key-del &lt;keyids&gt; ..." to remove keys &lt;keyids&gt;
-* "cyg key-list" to list keys
-* "cyg key-finger" to list fingerprints
-* "cyg upgrade-self" to upgrade apt-cyg
-* "cyg depends &lt;package names&gt;" to show forward dependency information for packages with depth.
-* "cyg rdepends &lt;package names&gt;" to show reverse dependency information for packages with depth.
-* "cyg completion-install" to install completion.
-* "cyg completion-uninstall" to uninstall completion.
-* "cyg mirrors-list" to show list of mirrors.
-* "cyg benchmark-mirrors &lt;url&gt; ..." to benchmark mirrors.
-* "cyg benchmark-parallel-mirrors &lt;url&gt; ..." to benchmark mirrors in parallel.
-* "cyg benchmark-parallel-mirrors-list" to benchmark mirrors-list in parallel.
-* "cyg scriptinfo" to show script infomations.
-* "cyg show-packages-busyness &lt;package names&gt; ..." to show packages are busy or noe.
-* "cyg dist-upgrade" to upgrade all packages that is installed. This subcommand uses setup-*.exe
-* "cyg update-setup" to update setup.exe
-* "cyg setup" to call setup.exe
-* "cyg packages-total-count" count number of total packages from setup.ini
-* "cyg packages-total-size" count size of total packages from setup.ini
-* "cyg packages-cached-count" count number of cached packages in cache/mirrordir.
-* "cyg packages-cached-size" count size of cached packages in cache/mirrordir.
-
-Requirements
-------------
+## Requirements
 
 cyg requires the cygwin default environment and optional packages below.
 
 * wget,ca-certificates,gnupg
 
-Quick start
------------
-
- [ TODO ]
+## Quick start
 
 To use cyg, for example:
 
     cyg install nano
 
-Features
-------------
+## A Note About Licensing
+
+The main reason that this branch was born was about a sad DCMA about transcode-open/apt-cyg  
+You can read full notice here: https://github.com/github/dmca/blob/master/2016-01-26-apt-cyg.md  
+So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in feature.. 
+  
+```
+This fork is released under GPLv3 License by pi0
+You may copy, distribute and modify the software as long as you track changes/dates in source files.
+Any modifications to or software including (via compiler) GPL-licensed code must also be made available
+under the GPL along with build & install instructions. ( see GPLv3.txt )
+```
+
+## Features
 
 ### dist-upgrade support
 
