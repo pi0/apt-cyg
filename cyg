@@ -109,15 +109,15 @@ function usage()
 
 function version()
 {
+  echo "cyg: Cygwin Package Manager"
+  echo "Originally Written by Stephen Jungels"
+  echo "Copyright (c) 2005-9 Stephen Jungels. 2016 Pooya Parsa. Released under the GPLv3."
+  echo ""
   echo "# This program is released under GPLv3 license"
   echo "# You may copy, distribute and modify the software as long as you track changes/dates in source files."
   echo "# Any modifications to or software including (via compiler) GPL-licensed code must also be made available"
   echo "# under the GPL along with build & install instructions."
   echo ""
-  echo "**cyg**"
-  echo "Originally Written by Stephen Jungels"
-  echo ""
-  echo "Copyright (c) 2005-9 Stephen Jungels.2016 Pooya Parsa. Released under the GPLv3."
 }
 
 # Usage: verbose [level [msg ...]]
