@@ -16,18 +16,16 @@ To use cyg, for example:
     cyg install nano
 
 ## A Note About Licensing
-
-The main reason that this branch was born was about a sad DCMA about transcode-open/apt-cyg  
-You can read full notice here: https://github.com/github/dmca/blob/master/2016-01-26-apt-cyg.md  
-So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in feature.. 
-  
 ```
-This fork is released under GPLv3 License by pi0
+This fork is released under GPLv3 License
 You may copy, distribute and modify the software as long as you track changes/dates in source files.
 Any modifications to or software including (via compiler) GPL-licensed code must also be made available
 under the GPL along with build & install instructions. ( see GPLv3.txt )
 ```
-
+The main reason that this branch was born was about a sad DCMA about transcode-open/apt-cyg  
+You can read full notice here: https://github.com/github/dmca/blob/master/2016-01-26-apt-cyg.md  
+So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in feature.. 
+  
 ## Features
 
 ### dist-upgrade support
