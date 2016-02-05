@@ -24,7 +24,7 @@ under the GPL along with build & install instructions. ( see GPLv3.txt )
 ```
 The main reason that this branch was born was about a sad DCMA about transcode-open/apt-cyg  
 You can read full notice here: https://github.com/github/dmca/blob/master/2016-01-26-apt-cyg.md  
-So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in feature.. 
+So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in the future.. 
   
 ## Features
 
