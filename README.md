@@ -7,7 +7,7 @@ This project is based on *kou1okada/apt-cyg*
 
 cyg requires the cygwin default environment and optional packages below.
 
-* wget,ca-certificates,gnupg
+* aria2,ca-certificates,gnupg
 
 ## Quick start
 
@@ -27,6 +27,9 @@ You can read full notice here: https://github.com/github/dmca/blob/master/2016-0
 So i forked kou1okada/apt-cyg (MIT) and **legally sublicensed** it to **GPLv3** to avoid problems like this in the future.. 
   
 ## Features
+
+### Faster downloads 
+Thanks to **aria2c** multi part downloads help faster downloads. (Similar to apt-fast)
 
 ### dist-upgrade support
 

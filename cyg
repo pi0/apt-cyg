@@ -10,7 +10,8 @@
 # ===========================================================================================================
 
 DL="/bin/aria2c"
-DLCMD="$DL -j 8 -x 10 -s 8 --min-split-size=1M --stream-piece-selector=default --connect-timeout=600 --timeout=600 -m0 --max-download-result=0" 
+DLCMD="$DL -j 8 -x 10 -s 8 --min-split-size=1M --stream-piece-selector=default --connect-timeout=600 --timeout=600 -m0 --max-download-result=0"
+DLCMD_Q="$DLCMD -q" 
 
 TRUSTEDKEYS=( CYGWIN CYGWINPORTS );
 # ./pubring.asc
@@ -178,10 +179,10 @@ function findworkspace()
 
 function download_and_verify ()
 {
-  $DLCMD "$1" || return 1
+  $DLCMD $2 "$1" || return 1
   [ -e "${1##*/}" ] || return 1
   if [ -z "$no_verify" ]; then
-    $DLCMD "${1}.sig" || return 1
+    $DLCMD_Q "${1}.sig" || return 1
     [ -e "${1##*/}.sig" ] && verify_signatures "${1##*/}.sig" || { rm -f "${1##*/}" "${1##*/}.sig"; return 1; }
   fi
   return
@@ -225,8 +226,8 @@ function setupini_download ()
   
   while true; do
     verbose 1 "Updating setup.ini"
-    download_and_verify "$mirror/$arch/setup.bz2" && { bunzip2 -k setup.bz2 && mv setup setup.ini || rm -f setup.bz2; }
-    download_and_verify "$mirror/$arch/setup.ini" || break
+    download_and_verify "$mirror/$arch/setup.bz2" -q && { bunzip2 -k setup.bz2 && mv setup setup.ini || rm -f setup.bz2; }
+    download_and_verify "$mirror/$arch/setup.ini" -q || break
     
     files_backup_clean setup.ini setup.ini.sig setup.bz2 setup.bz2.sig
     popd > /dev/null
