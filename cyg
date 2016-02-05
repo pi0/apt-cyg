@@ -9,6 +9,9 @@
 # under the GPL along with build & install instructions. ( see GPLv3.txt )
 # ===========================================================================================================
 
+DL="/bin/aria2c"
+DLCMD="$DL -j 8 -x 10 -s 8 --min-split-size=1M --stream-piece-selector=default --connect-timeout=600 --timeout=600 -m0 --max-download-result=0" 
+
 TRUSTEDKEYS=( CYGWIN CYGWINPORTS );
 # ./pubring.asc
 # ------------
@@ -30,53 +33,51 @@ TRUSTEDKEY_CYGWINPORTS_URL_LATEST="http://cygwinports.org/ports.gpg"
 (( 5 <= "${DEBUG:-0}" )) && set -x
 
 # this script requires some packages
-
-WGET="$( which wget 2>/dev/null )"
-TAR="$(  which tar  2>/dev/null )"
-GAWK="$( which awk  2>/dev/null )"
-GPGV="$( which gpgv 2>/dev/null )"
-GPG="$(  which gpg  2>/dev/null )"
-if [ -z "$WGET" -o -z "$TAR" -o -z "$GAWK" ]; then
-  echo You must install wget, tar and gawk to use apt-cyg.
+TAR="$(  which tar   2>/dev/null )"
+GAWK="$( which awk   2>/dev/null )"
+GPGV="$( which gpgv  2>/dev/null )"
+GPG="$(  which gpg   2>/dev/null )"
+if [ -z "$DL" -o -z "$TAR" -o -z "$GAWK" ]; then
+  echo You must install $DL, tar and gawk to use cyg.
   exit 1
 fi
 
 function usage()
 {
-  echo apt-cyg: Installs and removes Cygwin packages.
-  echo "  \"apt-cyg install <package names>\" to install packages"
-  echo "  \"apt-cyg remove <package names>\" to remove packages"
-  echo "  \"apt-cyg update\" to update setup.ini"
-  echo "  \"apt-cyg show\" to show installed packages"
-  echo "  \"apt-cyg find <patterns>\" to find packages matching patterns"
-  echo "  \"apt-cyg describe <patterns>\" to describe packages matching patterns"
-  echo "  \"apt-cyg packageof <commands or files>\" to locate parent packages"
-  echo "  \"apt-cyg pathof <cache|mirror|mirrordir|cache/mirrordir|setup.ini>\""
+  echo cyg: Installs and removes Cygwin packages.
+  echo "  \"cyg install <package names>\" to install packages"
+  echo "  \"cyg remove <package names>\" to remove packages"
+  echo "  \"cyg update\" to update setup.ini"
+  echo "  \"cyg show\" to show installed packages"
+  echo "  \"cyg find <patterns>\" to find packages matching patterns"
+  echo "  \"cyg describe <patterns>\" to describe packages matching patterns"
+  echo "  \"cyg packageof <commands or files>\" to locate parent packages"
+  echo "  \"cyg pathof <cache|mirror|mirrordir|cache/mirrordir|setup.ini>\""
   echo "                                                          to show path"
-  echo "  \"apt-cyg key-add <files> ...\" to add keys contained in <files>"
-  echo "  \"apt-cyg key-del <keyids> ...\" to remove keys <keyids>"
-  echo "  \"apt-cyg key-list\" to list keys"
-  echo "  \"apt-cyg key-finger\" to list fingerprints"
-  echo "  \"apt-cyg upgrade-self\" to upgrade apt-cyg"
-  echo "  \"apt-cyg depends <package names>\""
+  echo "  \"cyg key-add <files> ...\" to add keys contained in <files>"
+  echo "  \"cyg key-del <keyids> ...\" to remove keys <keyids>"
+  echo "  \"cyg key-list\" to list keys"
+  echo "  \"cyg key-finger\" to list fingerprints"
+  echo "  \"cyg upgrade-self\" to upgrade cyg"
+  echo "  \"cyg depends <package names>\""
   echo "         to show forward dependency information for packages with depth."
-  echo "  \"apt-cyg rdepends <package names>\""
+  echo "  \"cyg rdepends <package names>\""
   echo "         to show reverse dependency information for packages with depth."
-  echo "  \"apt-cyg completion-install\" to install completion."
-  echo "  \"apt-cyg completion-uninstall\" to uninstall completion."
-  echo "  \"apt-cyg mirrors-list\" to show list of mirros."
-  echo "  \"apt-cyg benchmark-mirrors <url> ...\" to benchmark mirrors."
-  echo "  \"apt-cyg benchmark-parallel-mirrors <url> ...\" to benchmark mirrors in parallel."
-  echo "  \"apt-cyg benchmark-parallel-mirrors-list\" to benchmark mirrors-list in parallel."
-  echo "  \"apt-cyg scriptinfo\" to show script infomations."
-  echo "  \"apt-cyg show-packages-busyness <package names> ...\" to show packages are busy or noe."
-  echo "  \"apt-cyg dist-upgrade\" to upgrade all packages that is installed. This subcommand uses setup.exe"
-  echo "  \"apt-cyg update-setup\" to update setup.exe"
-  echo "  \"apt-cyg setup\" to call setup.exe"
-  echo "  \"apt-cyg packages-total-count\" count number of total packages from setup.ini"
-  echo "  \"apt-cyg packages-total-size [pattern_of_section]\" count size of total packages from setup.ini"
-  echo "  \"apt-cyg packages-cached-count\" count number of cached packages in cache/mirrordir."
-  echo "  \"apt-cyg packages-cached-size\" count size of cached packages in cache/mirrordir."
+  echo "  \"cyg completion-install\" to install completion."
+  echo "  \"cyg completion-uninstall\" to uninstall completion."
+  echo "  \"cyg mirrors-list\" to show list of mirros."
+  echo "  \"cyg benchmark-mirrors <url> ...\" to benchmark mirrors."
+  echo "  \"cyg benchmark-parallel-mirrors <url> ...\" to benchmark mirrors in parallel."
+  echo "  \"cyg benchmark-parallel-mirrors-list\" to benchmark mirrors-list in parallel."
+  echo "  \"cyg scriptinfo\" to show script infomations."
+  echo "  \"cyg show-packages-busyness <package names> ...\" to show packages are busy or noe."
+  echo "  \"cyg dist-upgrade\" to upgrade all packages that is installed. This subcommand uses setup.exe"
+  echo "  \"cyg update-setup\" to update setup.exe"
+  echo "  \"cyg setup\" to call setup.exe"
+  echo "  \"cyg packages-total-count\" count number of total packages from setup.ini"
+  echo "  \"cyg packages-total-size [pattern_of_section]\" count size of total packages from setup.ini"
+  echo "  \"cyg packages-cached-count\" count number of cached packages in cache/mirrordir."
+  echo "  \"cyg packages-cached-size\" count size of cached packages in cache/mirrordir."
   echo "Options:"
   echo "  --charch <arch>          : change archetecture"
   echo "  --use-setuprc            : set cache and mirror with /etc/setup/setup.rc"
@@ -98,7 +99,7 @@ function usage()
   echo "  --cache, -c <dir>        : set cache"
   echo "  --file, -f <file>        : read package names from file"
   echo "  --noupdate, -u           : don't update setup.ini from mirror"
-  echo "  --ipv4, -4               : wget prefer ipv4"
+  echo "  --ipv4, -4               : prefer ipv4"
   echo "  --quiet, -q              : quiet (no output)"
   echo "  --verbose, -v            : verbose"
   echo "  --help"
@@ -177,10 +178,10 @@ function findworkspace()
 
 function download_and_verify ()
 {
-  "${WGET[@]}" -N "$1" || return 1
+  $DLCMD "$1" || return 1
   [ -e "${1##*/}" ] || return 1
   if [ -z "$no_verify" ]; then
-    "${WGET[@]}" -N "${1}.sig" || return 1
+    $DLCMD "${1}.sig" || return 1
     [ -e "${1##*/}.sig" ] && verify_signatures "${1##*/}.sig" || { rm -f "${1##*/}" "${1##*/}.sig"; return 1; }
   fi
   return
@@ -264,7 +265,7 @@ function getrootdir ()
   esac
 }
 
-# Usage: charch arch apt-cyg_parms ...
+# Usage: charch arch cyg_parms ...
 function charch ()
 {
   local rootdir
@@ -284,7 +285,7 @@ function charch ()
 function init_gnupg ()
 {
   [ -z "$GPG" ] && return
-  export GNUPGHOME="$cache/.apt-cyg"
+  export GNUPGHOME="$cache/.cyg"
   if [ ! -d "$GNUPGHOME" ]; then
     if ! { mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"; } then
       echo -e "\e[31;1mError:\e[30;0m cannot initialize directory $GNUPGHOME"
@@ -319,6 +320,7 @@ function ask_user ()
 # Reference:
 # https://www.gnu.org/software/wget/manual/wget.html#Exit-Status
 # Usage: wget-exitstatus EXITSTATUS
+# TODO
 function wget-exitstatus ()
 {
   case $1 in
@@ -335,7 +337,7 @@ function wget-exitstatus ()
   esac
 }
 
-function wget_advice ()
+function download_advice ()
 {
   local status=${1:-$?}
   case $status in
@@ -368,14 +370,16 @@ function show_advice ()
   done
 }
 
-# Usage: wget_and_hash_check label hash url file
-function wget_and_hash_check ()
+# Usage: download_and_hash_check label hash url file
+function download_and_hash_check ()
 {
+  return #TODO this future is temportary disabled ..
   local LABEL="$1"
   local SUM="$2"
   local URL="$3"
   local FILE="$4"
-  if ! { "${WGET[@]}" "$URL" -O "$FILE" || get_advice wget; }; then
+  # TODO: wget backend works with -O while aria2 works with -o
+  if ! { $DLCMD "$URL" -o "$FILE" || get_advice download; }; then
     echo "$LABEL: FAILED: Could not download $URL."
     return 1
   fi
@@ -403,13 +407,13 @@ function fetch_trustedkeys ()
       continue
     fi
     if [ -n "$URL" ]; then
-      wget_and_hash_check "$LABEL" "$SUM" "$URL" "$FILE"
+      download_and_hash_check "$LABEL" "$SUM" "$URL" "$FILE"
       CASE+="$?"
     else
       CASE+="-"
     fi
     if [ -n "$URL_LATEST" ]; then
-      wget_and_hash_check "$LABEL" "$SUM" "$URL_LATEST" "$FILE_LATEST"
+      download_and_hash_check "$LABEL" "$SUM" "$URL_LATEST" "$FILE_LATEST"
       CASE+="$?"
     else
       CASE+="-"
@@ -464,8 +468,8 @@ function verify_signatures ()
   done
 }
 
-# Usage: apt-cyg-key-add pkey ...
-function apt-cyg-key-add ()
+# Usage: cyg-key-add pkey ...
+function cyg-key-add ()
 {
   [ -z "$GPG" ] && { echo -e "\e[31;1mError:\e[30;0m GnuPG is not installed. Prease install gnupg package"; exit 1; }
   local pkeys
@@ -478,8 +482,8 @@ function apt-cyg-key-add ()
   done
 }
 
-# Usage: apt-cyg-key-add keyid ...
-function apt-cyg-key-del ()
+# Usage: cyg-key-add keyid ...
+function cyg-key-del ()
 {
   [ -z "$GPG" ] && { echo -e "\e[31;1mError:\e[30;0m GnuPG is not installed. Prease install gnupg package"; exit 1; }
   local keyid
@@ -489,21 +493,21 @@ function apt-cyg-key-del ()
   done
 }
 
-function apt-cyg-key-list ()
+function cyg-key-list ()
 {
   [ -z "$GPG" ] && { echo -e "\e[31;1mError:\e[30;0m GnuPG is not installed. Prease install gnupg package"; exit 1; }
   findworkspace
   "${GPG[@]}" --list-keys
 }
 
-function apt-cyg-key-finger ()
+function cyg-key-finger ()
 {
   [ -z "$GPG" ] && { echo -e "\e[31;1mError:\e[30;0m GnuPG is not installed. Prease install gnupg package"; exit 1; }
   findworkspace
   "${GPG[@]}" --fingerprint
 }
 
-function apt-cyg-pathof ()
+function cyg-pathof ()
 {
   findworkspace >& /dev/null
   while [ "$#" -gt 0 ]; do
@@ -522,7 +526,7 @@ function apt-cyg-pathof ()
   done
 }
 
-function apt-cyg-upgrade-self ()
+function cyg-upgrade-self ()
 {
   local basedir="$(dirname "$(readlink -f "$(which "$0")")")"
   if [ ! -d "$basedir/.git" ]; then
@@ -537,7 +541,7 @@ function apt-cyg-upgrade-self ()
 function proxy_auto ()
 {
   local hash="$(ipconfig 2>&1 | md5sum -b | awk '{print $1}')"
-  local cache="/tmp/apt-cyg.proxy.$hash"
+  local cache="/tmp/cyg.proxy.$hash"
   local last="$(stat -c %Y "$cache" 2>/dev/null)"
   local now="$(date +%s)"
   local proxy
@@ -546,7 +550,8 @@ function proxy_auto ()
   if (( (now - ${last:-0}) < OPT_PROXY_REFRESH_INTERVAL )); then
     proxy="$(<"$cache")"
   else
-    proxy=$("${WGET[@]}" --no-proxy -q -O - wpad/wpad.dat \
+	#TODO: o vs O 
+    proxy=$($DLCMD --no-proxy -q -o - wpad/wpad.dat \
     | grep PROXY \
     | sed -e 's/^.*PROXY\s*\([^"]*\).*$/http:\/\/\1/g')
     echo "$proxy" > "$cache"
@@ -606,7 +611,7 @@ function package_db-version_check ()
     echo -e "\e[33;1mWarning:\e[30;0m ${PACKAGE_DB} is not version 2. The first line is below:"
     echo -e "$(head -n1 "${PACKAGE_DB}")\n" >&2
     
-    # The previous version of apt-cyg was not treat version header correctly.
+    # The previous version of cyg was not treat version header correctly.
     if grep -FHnx "${ver2hdr}" "${PACKAGE_DB}" >&2; then
       echo -e "The above line looks like version header, but it is not the first line.\n" >&2
     fi
@@ -641,7 +646,7 @@ function package_db-register ()
 {
   local pkgfile="${1##*/}"
   local pkgname="$(get_pkgname "$pkgfile")"
-  local work="/tmp/apt-cyg.$$.${PACKAGE_DB##*/}"
+  local work="/tmp/cyg.$$.${PACKAGE_DB##*/}"
   
   package_db-version_check
   
@@ -659,7 +664,7 @@ function package_db-register ()
 # Usage: package_db-unregister PKGNAME
 function package_db-unregister ()
 {
-  local work="/tmp/apt-cyg.$$.${PACKAGE_DB##*/}"
+  local work="/tmp/cyg.$$.${PACKAGE_DB##*/}"
   
   package_db-version_check
   
@@ -730,7 +735,7 @@ function dep_check ()
       }
     }
   ' \
-  DIR="$1" ROOTPKGS="$(join $'\x1c' "${@:2}")" "$(apt-cyg-pathof "setup.ini")" \
+  DIR="$1" ROOTPKGS="$(join $'\x1c' "${@:2}")" "$(cyg-pathof "setup.ini")" \
   | awk '
     function min(x,y) {return x < y ? x : y}
     function max(x,y) {return x < y ? y : x}
@@ -752,21 +757,21 @@ function dep_check ()
   ' | sort -nrk4
 }
 
-function apt-cyg-depends ()
+function cyg-depends ()
 {
   local pkg
   [ -z "$OPT_NO_HEADER" ] && printf "%-40s %s\t%s\t%s\n" "PKGNAME" "AVAIL" "SHALLOW" "DEEP"
   dep_check depends "$@"
 }
 
-function apt-cyg-rdepends ()
+function cyg-rdepends ()
 {
   local pkg
   [ -z "$OPT_NO_HEADER" ] && printf "%-40s %s\t%s\t%s\n" "PKGNAME" "AVAIL" "SHALLOW" "DEEP"
   dep_check rdepends "$@"
 }
 
-function apt-cyg-completion-install ()
+function cyg-completion-install ()
 {
   if [ ! -d "/etc/bash_completion.d" ]; then
     echo -e "\e[31;1mError:\e[30;0m /etc/bash_completion.d is not exist."
@@ -779,10 +784,10 @@ function apt-cyg-completion-install ()
   
   local SUBCMDS
   local OPTIONS
-  local SCRIPTFILE="$(realpath "$(which apt-cyg)")"
+  local SCRIPTFILE="$(realpath "$(which cyg)")"
   local SCRIPTDIR="${SCRIPTNAME%/*}"
   
-  readarray -t -O ${#SUBCMDS[@]} SUBCMDS < <(grep "^function " "$SCRIPTFILE" | awk 'match($2, /apt-cyg-([-_0-9A-Za-z]+)/,m){print m[1]}')
+  readarray -t -O ${#SUBCMDS[@]} SUBCMDS < <(grep "^function " "$SCRIPTFILE" | awk 'match($2, /cyg-([-_0-9A-Za-z]+)/,m){print m[1]}')
   readarray -t -O ${#OPTIONS[@]} OPTIONS < <(
     awk '
       /^function *parse_args *\(\)/ {proc=1}
@@ -793,32 +798,32 @@ function apt-cyg-completion-install ()
       }
       ' "$SCRIPTFILE"
     )
-  cat <<-EOD > /etc/bash_completion.d/apt-cyg
-# bash completion for apt-cyg
+  cat <<-EOD > /etc/bash_completion.d/cyg
+# bash completion for cyg
 
-function __apt-cyg ()
+function __cyg ()
 {
   local cur prev getsubcmd subcmd
   
   # Auto update for completion script.
-  if [ -z "$OPT_COMPLETION_DISABLE_AUTOUPDATE" -a "$SCRIPTFILE" -nt "/etc/bash_completion.d/apt-cyg" ]; then
-    apt-cyg completion-install >/dev/null 2>&1
-    . /etc/bash_completion.d/apt-cyg
-    __apt-cyg "$@"
+  if [ -z "$OPT_COMPLETION_DISABLE_AUTOUPDATE" -a "$SCRIPTFILE" -nt "/etc/bash_completion.d/cyg" ]; then
+    cyg completion-install >/dev/null 2>&1
+    . /etc/bash_completion.d/cyg
+    __cyg "$@"
     return
   fi
   
   _get_comp_words_by_ref -n : cur prev
   
-  getsubcmd=( apt-cyg --completion-get-subcommand \$(echo "\${COMP_LINE}" | sed -r -e 's/^[^ \t]+//g' -e 's/[^ \t]+\$//g') )
+  getsubcmd=( cyg --completion-get-subcommand \$(echo "\${COMP_LINE}" | sed -r -e 's/^[^ \t]+//g' -e 's/[^ \t]+\$//g') )
   subcmd="\$( "\${getsubcmd[@]}" )"
   
   case "\$subcmd" in
     install|depends|rdepends|describe|find)
-      COMPREPLY=( \$(awk '/^@ /{print \$2}' "$(apt-cyg pathof setup.ini)") )
+      COMPREPLY=( \$(awk '/^@ /{print \$2}' "$(cyg pathof setup.ini)") )
       ;;
     remove)
-      COMPREPLY=( \$(apt-cyg show 2>/dev/null) )
+      COMPREPLY=( \$(cyg show 2>/dev/null) )
       ;;
     pathof)
       COMPREPLY=( cache mirror mirrordir cache/mirrordir setup.ini )
@@ -862,23 +867,23 @@ function __apt-cyg ()
   COMPREPLY=( \$(compgen -W "\${COMPREPLY[*]}" -- "\$cur") )
   __ltrim_colon_completions "\$cur"
 }
-complete -F __apt-cyg apt-cyg
+complete -F __cyg cyg
 EOD
-  touch -r "$SCRIPTFILE" "/etc/bash_completion.d/apt-cyg"
-  echo "A bash completion /etc/bash_completion.d/apt-cyg is installed"
+  touch -r "$SCRIPTFILE" "/etc/bash_completion.d/cyg"
+  echo "A bash completion /etc/bash_completion.d/cyg is installed"
 }
 
-function apt-cyg-completion-uninstall ()
+function cyg-completion-uninstall ()
 {
-  if [ ! -f /etc/bash_completion.d/apt-cyg ]; then
-    echo -e "\e[31;1mError:\e[30;0m /etc/bash_completion.d/apt-cyg is not exist."
+  if [ ! -f /etc/bash_completion.d/cyg ]; then
+    echo -e "\e[31;1mError:\e[30;0m /etc/bash_completion.d/cyg is not exist."
     exit 1
   fi
-  rm /etc/bash_completion.d/apt-cyg
-  echo "A bash completion /etc/bash_completion.d/apt-cyg is uninstalled"
+  rm /etc/bash_completion.d/cyg
+  echo "A bash completion /etc/bash_completion.d/cyg is uninstalled"
 }
 
-function apt-cyg-mirrors-list ()
+function cyg-mirrors-list ()
 {
   awk '
     /^[^ \t]+/ {section = $1}
@@ -886,8 +891,9 @@ function apt-cyg-mirrors-list ()
   ' "/etc/setup/setup.rc"
 }
 
-function apt-cyg-benchmark-mirrors ()
+function cyg-benchmark-mirrors ()
 {
+  # TODO
   local mirror result exitcode
   for mirror; do
     result="$( { time wget -qO/dev/null -T3 -t 1 "${mirror%/}/$(current_cygarch)/setup.bz2"; } 2>&1 )"
@@ -900,11 +906,11 @@ function apt-cyg-benchmark-mirrors ()
   done
 }
 
-function apt-cyg-benchmark-parallel-mirrors ()
+function cyg-benchmark-parallel-mirrors ()
 {
   local result="$(mktemp --tmpdir "${SCRIPTNAME}.$$.XXXXX")"
   local mirror
-  for mirror; do echo $mirror; done | lesser-parallel apt-cyg-benchmark-mirrors {} | tee "$result"
+  for mirror; do echo $mirror; done | lesser-parallel cyg-benchmark-mirrors {} | tee "$result"
   echo Finished benchmark.
   echo ========================================
   echo Sorted result.
@@ -913,14 +919,14 @@ function apt-cyg-benchmark-parallel-mirrors ()
 
 }
 
-function apt-cyg-benchmark-parallel-mirrors-list ()
+function cyg-benchmark-parallel-mirrors-list ()
 {
   local mirrors
-  readarray -t mirrors < <(apt-cyg-mirrors-list)
-  apt-cyg-benchmark-parallel-mirrors "${mirrors[@]}"
+  readarray -t mirrors < <(cyg-mirrors-list)
+  cyg-benchmark-parallel-mirrors "${mirrors[@]}"
 }
 
-function apt-cyg-scriptinfo ()
+function cyg-scriptinfo ()
 {
 cat<<EOD
 SCRIPT_PATH     = "$SCRIPT_PATH"
@@ -940,7 +946,7 @@ function isbusy ()
   perl -e 'foreach $i(@ARGV){if(-f $i){open(DATAFILE,"+<",$i)||exit(0);close(DATAFILE);}}exit(1);' -- "$@"
 }
 
-function apt-cyg-show-packages-busyness ()
+function cyg-show-packages-busyness ()
 {
   local pkg lst files
   for pkg; do
@@ -1024,13 +1030,13 @@ function kill_all_cygwin_process ()
   kill -9 $(echo "$pslog" | grep -v "${family[@]}" | awk '{print $1}') ${family[$((${#family[@]} - 1))]}
 }
 
-function apt-cyg-update-setup ()
+function cyg-update-setup ()
 {
   [ -n "$OPT_NO_UPDATE_SETUP" ] && return
   
-  pushd "$(apt-cyg-pathof cache)" > /dev/null
+  pushd "$(cyg-pathof cache)" > /dev/null
   
-  if "${WGET[@]}" -N "https://cygwin.com/${SETUP_EXE}"; then
+  if $DLCMD "https://cygwin.com/${SETUP_EXE}"; then
     chmod +x "${SETUP_EXE}"
     ls -l "${SETUP_EXE}" > $(verbosefor 2)
   else
@@ -1041,46 +1047,46 @@ function apt-cyg-update-setup ()
   popd > /dev/null
 }
 
-function apt-cyg-setup ()
+function cyg-setup ()
 {
-  pushd "$(apt-cyg pathof cache)" > /dev/null
+  pushd "$(cyg pathof cache)" > /dev/null
   
-  apt-cyg-update-setup
+  cyg-update-setup
   ./"${SETUP_EXE}" "$@"
   
   popd > /dev/null
 }
 
-function apt-cyg-dist-upgrade-no-ask ()
+function cyg-dist-upgrade-no-ask ()
 {
-  pushd "$(apt-cyg-pathof cache)" > /dev/null
+  pushd "$(cyg-pathof cache)" > /dev/null
   
-  apt-cyg-update-setup
+  cyg-update-setup
   cygstart cmd /c 'ECHO Press any key to start dist-upgrade for cygwin '"$(current_cygarch)"' && PAUSE && START /WAIT .\'"${SETUP_EXE}"' -B -q -n -g && ash -c "/bin/rebaseall -v" && ECHO dist-upgrade is finished && ECHO Press any key to exit && PAUSE' # '
   kill_all_cygwin_process
   
   popd > /dev/null
 }
 
-function apt-cyg-dist-upgrade ()
+function cyg-dist-upgrade ()
 {
   echo "Kill all cygwin process and start dist-upgrade."
   ask_user "Are you sure ?" && {
     echo "Start dist-upgrade ..."
     sleep 1
-    apt-cyg-dist-upgrade-no-ask
+    cyg-dist-upgrade-no-ask
   } || {
     echo "Abort."
   }
 }
 
-function apt-cyg-packages-total-count ()
+function cyg-packages-total-count ()
 {
-  grep ^@ <"$(apt-cyg pathof setup.ini)" | wc -l
+  grep ^@ <"$(cyg pathof setup.ini)" | wc -l
 }
 
-# Usage: apt-cyg-packages-total-size [pattern_of_section]
-function apt-cyg-packages-total-size ()
+# Usage: cyg-packages-total-size [pattern_of_section]
+function cyg-packages-total-size ()
 {
   local section="^$"
   (( 0 < $# )) && section="$1"
@@ -1090,19 +1096,19 @@ function apt-cyg-packages-total-size ()
     match($0,/^\[([ -~]*)\] *$/,m) {section = m[1]}
     match(section, SECTION) && $1 == "install:" {sum += $3}
     END {print sum}
-  ' "$(apt-cyg pathof setup.ini)"
+  ' "$(cyg pathof setup.ini)"
 }
 
-function apt-cyg-packages-cached-count ()
+function cyg-packages-cached-count ()
 {
-  pushd "$(apt-cyg pathof cache/mirrordir)" > /dev/null
+  pushd "$(cyg pathof cache/mirrordir)" > /dev/null
   find . -type f | grep tar | wc -l
   popd > /dev/null
 }
 
-function apt-cyg-packages-cached-size ()
+function cyg-packages-cached-size ()
 {
-  pushd "$(apt-cyg pathof cache/mirrordir)" > /dev/null
+  pushd "$(cyg pathof cache/mirrordir)" > /dev/null
   find . -type f -iname '*tar*' -exec ls -l {} + \
   | awk '{sum+=$5}END{print sum}'
   popd > /dev/null
@@ -1179,7 +1185,7 @@ function lesser-parallel ()
 
 #/Lesser Parallel for Embedding
 
-function apt-cyg-help ()
+function cyg-help ()
 {
   usage
 }
@@ -1243,7 +1249,7 @@ function parse_args ()
       
       --no-check-certificate)
         OPTS4INHERIT+=( "$1" )
-        WGET+=( "--no-check-certificate" )
+        DLCMD= $DLCMD --no-check-certificate
         shift
         ;;
       
@@ -1304,11 +1310,6 @@ function parse_args ()
       
       --noupdate|-u)
         noupdate=1
-        shift
-        ;;
-      
-      --ipv4|-4)
-        WGET=( "${WGET[@]}" "--prefer-family=IPv4" )
         shift
         ;;
       
@@ -1401,29 +1402,29 @@ for file in "${OPT_FILES[@]}"; do
   fi
 done
 
-wget --help | grep -- --show-progress &>/dev/null && HAVE_SHOW_PROGRESS="--show-progress"
-wget --help | grep -- --no-verbose    &>/dev/null && HAVE_NO_VERBOSE="--no-verbose"
-(( "${OPT_VERBOSE_LEVEL}" < 0 )) && WGET+=( --quiet ) || \
-(( "${OPT_VERBOSE_LEVEL}" < 1 )) && WGET+=( --quiet $HAVE_SHOW_PROGRESS ) || \
-(( "${OPT_VERBOSE_LEVEL}" < 2 )) && WGET+=( $HAVE_NO_VERBOSE $HAVE_SHOW_PROGRESS )
+$DL --help | grep -- --show-progress &>/dev/null && HAVE_SHOW_PROGRESS="--show-progress"
+$DL --help | grep -- --no-verbose    &>/dev/null && HAVE_NO_VERBOSE="--no-verbose"
+(( "${OPT_VERBOSE_LEVEL}" < 0 )) && DLCMD=$DLCMD --quiet || \
+(( "${OPT_VERBOSE_LEVEL}" < 1 )) && DLCMD=$DLCMD --quiet $HAVE_SHOW_PROGRESS || \
+(( "${OPT_VERBOSE_LEVEL}" < 2 )) && DLCMD=$DLCMD $HAVE_NO_VERBOSE $HAVE_SHOW_PROGRESS 
 
 
 
-function apt-cyg-update ()
+function cyg-update ()
 {
   findworkspace
   getsetup
 }
 
 
-function apt-cyg-show ()
+function cyg-show ()
 {
   [ -z "$OPT_NO_HEADER" ] && echo "The following packages are installed:"
   package_db-list
 }
 
 
-function apt-cyg-find ()
+function cyg-find ()
 {
   local pkg
   
@@ -1444,7 +1445,7 @@ function apt-cyg-find ()
 }
 
 
-function apt-cyg-describe ()
+function cyg-describe ()
 {
   local pkg
   
@@ -1460,7 +1461,7 @@ function apt-cyg-describe ()
 }
 
 
-function apt-cyg-packageof ()
+function cyg-packageof ()
 {
   local pkg
   local manifest
@@ -1482,7 +1483,7 @@ function apt-cyg-packageof ()
 }
 
 
-function apt-cyg-install ()
+function cyg-install ()
 {
   local pkg
   local script
@@ -1526,7 +1527,7 @@ function apt-cyg-install ()
     
     local file="$(basename "$install")"
     cd "release/$pkg"
-    "${WGET[@]}" -Nc $mirror/$install
+    $DLCMD $mirror/$install
     
     # check the SHA512 hash
     local digest="$(awk '/^install: / { print $4; exit }' "desc")"
@@ -1559,7 +1560,7 @@ function apt-cyg-install ()
           verbose 0 "Package $package is already installed, skipping"
           continue
         fi
-        apt-cyg "${OPTS4INHERIT[@]}" --proxy inherit --noscripts install $package
+        cyg "${OPTS4INHERIT[@]}" --proxy inherit --noscripts install $package
         if [ $? -ne 0 ]; then warn=1; fi
       done
     fi
@@ -1584,7 +1585,7 @@ function apt-cyg-install ()
 }
 
 
-function apt-cyg-remove()
+function cyg-remove()
 {
   local pkg
   local req
@@ -1596,10 +1597,10 @@ function apt-cyg-remove()
       continue
     fi
     
-    local dontremove="cygwin coreutils gawk bzip2 tar xz wget bash"
+    local dontremove="cygwin coreutils gawk bzip2 tar xz wget aria2 bash"
     for req in $dontremove; do
       if [ "$pkg" = "$req" ]; then
-        verbose 0 "apt-cyg cannot remove package $pkg, exiting"
+        verbose 0 "cyg cannot remove package $pkg, exiting"
         exit 1
       fi
     done
@@ -1628,7 +1629,7 @@ function invoke_subcommand ()
 {
   local SUBCOMMAND="${@:1:1}"
   local ARGS=( "${@:2}" )
-  local ACTION="apt-cyg-${SUBCOMMAND:-help}"
+  local ACTION="cyg-${SUBCOMMAND:-help}"
   if type "$ACTION" >& /dev/null; then
     "$ACTION" "${ARGS[@]}"
   else
